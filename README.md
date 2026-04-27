@@ -70,6 +70,10 @@ Le schede si trovano nei file allegati a questa release:
 - `card_voti.yaml` — voti per materia con media
 - `card_comunicazioni.yaml` — comunicazioni con allegati
 
+Esempio
+<img width="1579" height="746" alt="Screenshot 2026-04-27 alle 23 28 36" src="https://github.com/user-attachments/assets/ec95ba3a-1d6e-473c-b99a-1c2aed68c078" />
+
+
 > ⚠️ In tutte le card sostituisci `studente` con il nome inserito durante la configurazione (in minuscolo).
 
 ---
