@@ -1,0 +1,102 @@
+# ============================================================
+# SCHEDA LOVELACE — CLASSEVIVA
+# ============================================================
+# Come usarla:
+# 1. Vai nella tua dashboard di Home Assistant
+# 2. Clicca i 3 puntini in alto a destra → "Modifica dashboard"
+# 3. Clicca "+" per aggiungere una scheda
+# 4. Scegli "Manuale" (in fondo alla lista)
+# 5. Cancella tutto il testo e incolla il contenuto qui sotto
+# ============================================================
+# IMPORTANTE: sostituisci "Studente" con il nome che hai
+# inserito durante la configurazione dell'integrazione.
+# ============================================================
+
+type: vertical-stack
+cards:
+
+  # ----------------------------------------------------------
+  # INTESTAZIONE
+  # ----------------------------------------------------------
+  - type: markdown
+    content: |
+      ## 🎒 Classeviva — Registro Elettronico
+
+  # ----------------------------------------------------------
+  # CARD AGENDA (compiti e verifiche)
+  # ----------------------------------------------------------
+  - type: custom:auto-entities
+    card:
+      type: entities
+      title: 📅 Agenda — Prossimi compiti e verifiche
+      show_header_toggle: false
+    filter:
+      include:
+        - entity_id: sensor.classeviva_agenda_studente
+    sort:
+      method: name
+
+  # Alternativa senza auto-entities: usa questa card template
+  - type: markdown
+    content: >
+      {% set eventi = state_attr('sensor.classeviva_agenda_studente', 'eventi') %}
+      {% if eventi and eventi | length > 0 %}
+      | 📅 Data | 📚 Materia | 📝 Tipo | 🗒️ Note |
+      |--------|-----------|--------|--------|
+      {% for ev in eventi %}
+      | **{{ ev.data }}** | {{ ev.materia }} | {{ ev.tipo | capitalize }} | {{ ev.note[:60] }}{% if ev.note | length > 60 %}...{% endif %} |
+      {% endfor %}
+      {% else %}
+      _Nessun evento in programma nei prossimi 30 giorni_ ✅
+      {% endif %}
+
+  # ----------------------------------------------------------
+  # CARD VOTI
+  # ----------------------------------------------------------
+  - type: markdown
+    content: >
+      ## 📊 Ultimi voti
+      **Media generale: {{ states('sensor.classeviva_voti_studente') }}**
+
+      {% set voti = state_attr('sensor.classeviva_voti_studente', 'voti') %}
+      {% if voti and voti | length > 0 %}
+      | 📅 Data | 📚 Materia | 🎯 Voto | 📋 Tipo | 💬 Nota |
+      |--------|-----------|-------|--------|--------|
+      {% for v in voti[:10] %}
+      | {{ v.data }} | {{ v.materia }} | {% if v.voto | float(0) >= 6 %}✅{% else %}⚠️{% endif %} **{{ v.voto }}** | {{ v.tipo }} | {{ v.nota[:40] }}{% if v.nota | length > 40 %}...{% endif %} |
+      {% endfor %}
+      {% else %}
+      _Nessun voto disponibile_
+      {% endif %}
+
+  # ----------------------------------------------------------
+  # CARD COMUNICAZIONI SCUOLA-FAMIGLIA
+  # ----------------------------------------------------------
+  - type: markdown
+    content: >
+      ## 📬 Comunicazioni scuola-famiglia
+      **Non lette: {{ states('sensor.classeviva_comunicazioni_studente') }}**
+
+      {% set comunicazioni = state_attr('sensor.classeviva_comunicazioni_studente', 'comunicazioni') %}
+      {% if comunicazioni and comunicazioni | length > 0 %}
+      {% for c in comunicazioni %}
+      ---
+      {% if not c.letta %}🔴{% else %}✅{% endif %} **{{ c.titolo }}**
+      _{{ c.categoria }}_ — {{ c.data }}
+      {% endfor %}
+      {% else %}
+      _Nessuna comunicazione disponibile_
+      {% endif %}
+
+  # ----------------------------------------------------------
+  # BARRA STATO (ultimo aggiornamento)
+  # ----------------------------------------------------------
+  - type: entities
+    title: ℹ️ Stato integrazione
+    entities:
+      - entity: sensor.classeviva_agenda_studente
+        name: Agenda (eventi prossimi 30gg)
+      - entity: sensor.classeviva_voti_studente
+        name: Media voti
+      - entity: sensor.classeviva_comunicazioni_studente
+        name: Comunicazioni non lette
