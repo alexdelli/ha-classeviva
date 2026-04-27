@@ -1,0 +1,22 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connetti Classeviva",
+        "description": "Inserisci le tue credenziali di Classeviva (le stesse che usi sul sito o sull'app).",
+        "data": {
+          "username": "Codice utente (es. S1234567X o codice fiscale)",
+          "password": "Password",
+          "student_name": "Nome dello studente (per riconoscerlo in HA)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile connettersi a Classeviva. Controlla la connessione internet.",
+      "invalid_auth": "Credenziali non valide. Controlla username e password."
+    },
+    "abort": {
+      "already_configured": "Classeviva è già configurato."
+    }
+  }
+}
