@@ -3,118 +3,86 @@
 Integrazione non ufficiale per visualizzare i dati del registro elettronico **Classeviva (Spaggiari)** direttamente in Home Assistant.
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-![Versione](https://img.shields.io/badge/versione-1.0.0-blue)
+![Versione](https://img.shields.io/badge/versione-1.4.0-blue)
 ![HA minimo](https://img.shields.io/badge/Home%20Assistant-2023.1.0+-green)
 
 ---
 
 ## ✨ Funzionalità
 
-- 📅 **Agenda** — compiti e verifiche in programma (prossimi 30 giorni)
-- 📊 **Voti** — ultimi voti con calcolo automatico della media
-- 📬 **Comunicazioni** — bacheca scuola-famiglia con conteggio messaggi non letti
+- 📅 **Agenda** — compiti e verifiche giorno per giorno con navigazione settimanale
+- 📊 **Voti** — media per materia e ultimi 3 voti, ordinati dalla media più alta
+- 📬 **Comunicazioni** — bacheca scuola-famiglia con evidenziazione messaggi non letti e link allegati
 - 🔄 Aggiornamento automatico ogni ora
 - 👨‍👩‍👧 Supporto per più studenti (aggiungi più volte l'integrazione)
 
 ---
 
-## 📦 Installazione tramite HACS
+## 📦 Dipendenze — cosa installare prima
 
-1. Apri HACS in Home Assistant
-2. Vai su **Integrazioni** → clicca i **3 puntini** in alto a destra → **"Repository personalizzati"**
-3. Inserisci l'URL di questo repository e scegli la categoria **"Integration"**
-4. Clicca **"Aggiungi"**, poi cerca **"Classeviva"** e installala
-5. **Riavvia Home Assistant**
-6. Vai su **Impostazioni → Dispositivi e servizi → + Aggiungi integrazione** → cerca **"Classeviva"**
+Le schede Lovelace richiedono **custom:button-card**.
+
+### Installazione button-card tramite HACS
+1. Apri **HACS** in Home Assistant
+2. Vai su **Frontend**
+3. Cerca **"Button Card"** di RomRider e installala
+4. Riavvia Home Assistant
+
+🔗 Repository: [https://github.com/custom-cards/button-card](https://github.com/custom-cards/button-card)
+
+---
+
+## 📦 Installazione integrazione tramite HACS
+
+1. Apri HACS → **Integrazioni** → 3 puntini → **"Repository personalizzati"**
+2. Inserisci l'URL di questo repository, categoria **"Integration"**
+3. Cerca **"Classeviva"** e installala → **Riavvia Home Assistant**
+4. Vai su **Impostazioni → Dispositivi e servizi → + Aggiungi integrazione** → cerca **"Classeviva"**
 
 ---
 
 ## ⚙️ Configurazione
 
-Durante la configurazione ti verranno chiesti:
-
 | Campo | Descrizione |
 |-------|-------------|
-| **Codice utente** | Il tuo username Classeviva. I genitori usano un codice tipo `S1234567X`, gli studenti il codice fiscale |
+| **Codice utente** | Genitori: codice tipo `G1234567X` o `X1234567X`. Studenti: `S1234567X` |
 | **Password** | La password del sito [web.spaggiari.eu](https://web.spaggiari.eu) |
-| **Nome studente** | Un nome a tua scelta per riconoscere i sensori in HA (es. `Marco`) |
+| **Nome studente** | Nome a tua scelta per identificare i sensori (es. `Marco`) |
+
+> **Nota per i genitori**: il codice inizia con `G` (Genitore 1) o `X` (Genitore 2). L'integrazione ricava automaticamente l'ID dello studente.
 
 ---
 
 ## 📡 Sensori creati
 
-Dopo la configurazione, vengono creati **3 sensori** (il suffisso dipende dal nome inserito):
-
 | Sensore | Valore | Attributi |
 |---------|--------|-----------|
-| `sensor.classeviva_agenda_[nome]` | N° eventi prossimi 30gg | Lista eventi con data, materia, tipo, note |
-| `sensor.classeviva_voti_[nome]` | Media voti | Lista voti con data, materia, voto, tipo, nota |
-| `sensor.classeviva_comunicazioni_[nome]` | N° non lette | Lista comunicazioni con titolo, categoria, data, stato lettura |
+| `sensor.classeviva_[nome]_classeviva_agenda_[nome]` | N° eventi prossimi 30gg | Lista eventi: data, materia, tipo, note |
+| `sensor.classeviva_[nome]_classeviva_voti_[nome]` | Media voti generale | Lista voti: data, materia, voto, tipo, nota |
+| `sensor.classeviva_[nome]_classeviva_comunicazioni_[nome]` | N° non lette | Lista comunicazioni: titolo, categoria, data, letta, event_code, pub_id, ha_allegato |
 
 ---
 
-## 🖥️ Scheda Lovelace
+## 🖥️ Schede Lovelace
 
-Copia questo YAML in una scheda "Manuale" della tua dashboard (sostituisci `[nome]` con il nome dello studente in minuscolo):
+Le schede si trovano nei file allegati a questa release:
+- `card_agenda.yaml` — agenda settimanale con navigazione
+- `card_voti.yaml` — voti per materia con media
+- `card_comunicazioni.yaml` — comunicazioni con allegati
 
-```yaml
-type: vertical-stack
-cards:
-  - type: markdown
-    content: |
-      ## 🎒 Classeviva — Registro Elettronico
-  - type: markdown
-    content: >
-      ## 📅 Agenda — Prossimi compiti e verifiche
-      {% set eventi = state_attr('sensor.classeviva_agenda_[nome]', 'eventi') %}
-      {% if eventi and eventi | length > 0 %}
-      | Data | Materia | Tipo | Note |
-      |------|---------|------|------|
-      {% for ev in eventi %}
-      | **{{ ev.data }}** | {{ ev.materia }} | {{ ev.tipo | capitalize }} | {{ ev.note[:60] }} |
-      {% endfor %}
-      {% else %}
-      _Nessun evento in programma_ ✅
-      {% endif %}
-  - type: markdown
-    content: >
-      ## 📊 Ultimi voti — Media: {{ states('sensor.classeviva_voti_[nome]') }}
-      {% set voti = state_attr('sensor.classeviva_voti_[nome]', 'voti') %}
-      {% if voti and voti | length > 0 %}
-      | Data | Materia | Voto | Tipo |
-      |------|---------|------|------|
-      {% for v in voti[:10] %}
-      | {{ v.data }} | {{ v.materia }} | {% if v.voto | float(0) >= 6 %}✅{% else %}⚠️{% endif %} **{{ v.voto }}** | {{ v.tipo }} |
-      {% endfor %}
-      {% else %}
-      _Nessun voto disponibile_
-      {% endif %}
-  - type: markdown
-    content: >
-      ## 📬 Comunicazioni (non lette: {{ states('sensor.classeviva_comunicazioni_[nome]') }})
-      {% set com = state_attr('sensor.classeviva_comunicazioni_[nome]', 'comunicazioni') %}
-      {% if com and com | length > 0 %}
-      {% for c in com %}
-      ---
-      {% if not c.letta %}🔴{% else %}✅{% endif %} **{{ c.titolo }}** — _{{ c.data }}_
-      {% endfor %}
-      {% else %}
-      _Nessuna comunicazione_
-      {% endif %}
-```
+> ⚠️ In tutte le card sostituisci `studente` con il nome inserito durante la configurazione (in minuscolo).
 
 ---
 
 ## ❓ Problemi comuni
 
-**"Credenziali non valide"**
-→ Verifica le credenziali su [web.spaggiari.eu](https://web.spaggiari.eu). I genitori usano il codice che inizia con `S`.
+**"Credenziali non valide"** → Verifica su [web.spaggiari.eu](https://web.spaggiari.eu). Genitori: codice con `G` o `X`.
 
-**"Impossibile connettersi"**
-→ Verifica che Home Assistant abbia accesso a internet e che il sito Spaggiari sia raggiungibile.
+**"Impossibile connettersi"** → Verifica la connessione internet di Home Assistant.
 
-**I dati non si aggiornano**
-→ L'aggiornamento avviene ogni ora. Puoi forzarlo da Impostazioni → Dispositivi e servizi → Classeviva → Aggiorna.
+**I dati non si aggiornano** → Aggiornamento ogni ora. Forza da Impostazioni → Dispositivi e servizi → Classeviva → Aggiorna.
+
+**La scheda è vuota** → Verifica che `custom:button-card` sia installato da HACS → Frontend.
 
 ---
 

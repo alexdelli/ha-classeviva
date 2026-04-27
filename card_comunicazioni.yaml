@@ -1,0 +1,98 @@
+type: custom:button-card
+entity: sensor.classeviva_studente_classeviva_comunicazioni_studente
+show_name: false
+show_icon: false
+show_state: false
+styles:
+  card:
+    - padding: 16px
+    - text-align: left
+extra_styles: >
+  .cm-wrap { font-family: var(--primary-font-family); text-align: left; }
+
+  .cm-title { font-size: 15px; font-weight: 600; color:
+  var(--primary-text-color); margin-bottom: 14px; }
+
+  .cm-item { border: 1px solid var(--divider-color); border-radius: 12px;
+  margin-bottom: 10px; overflow: hidden; }
+
+  .cm-item-nuova { border: 1px solid #1D9E75; }
+
+  .cm-header { padding: 10px 14px; display: flex; align-items: flex-start; gap:
+  10px; }
+
+  .cm-header-nuova { background: rgba(29,158,117,0.07); }
+
+  .cm-icona { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+  .cm-body { flex: 1; min-width: 0; overflow: hidden; }
+
+  .cm-titolo { font-size: 13px; font-weight: 600; color:
+  var(--primary-text-color); word-break: break-word; white-space: normal;
+  overflow-wrap: break-word; line-height: 1.4; }
+
+  .cm-titolo-nuova { color: #0F6E56; }
+
+  .cm-footer { display: flex; align-items: center; gap: 8px; margin-top: 4px;
+  flex-wrap: wrap; }
+
+  .cm-categoria { font-size: 11px; color: var(--secondary-text-color); }
+
+  .cm-data { font-size: 11px; color: var(--secondary-text-color); margin-left:
+  auto; flex-shrink: 0; }
+
+  .cm-badge-nuova { font-size: 10px; font-weight: 700; background: #1D9E75;
+  color: #fff; padding: 1px 7px; border-radius: 999px; text-transform:
+  uppercase; letter-spacing: 0.03em; }
+
+  .cm-vuoto { font-size: 13px; color: var(--secondary-text-color); font-style:
+  italic; padding: 8px 0; }
+custom_fields:
+  content: |
+    [[[
+      const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+      const stato = hass.states['sensor.classeviva_studente_classeviva_comunicazioni_studente'];
+      const comunicazioni = (stato && stato.attributes && stato.attributes.comunicazioni) ? stato.attributes.comunicazioni : [];
+
+      function fmtData(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear();
+      }
+
+      // Ordina dalla più recente e prendi le prime 10
+      const ordinate = comunicazioni.slice().sort(function(a, b) {
+        return new Date(b.data) - new Date(a.data);
+      }).slice(0, 10);
+
+      let cvHtml = '<div class="cm-wrap">';
+
+      const nonLette = ordinate.filter(function(c) { return !c.letta; }).length;
+      cvHtml += '<div class="cm-title">📬 Comunicazioni';
+      if (nonLette > 0) cvHtml += ' <span style="font-size:12px;background:#FCEBEB;color:#A32D2D;padding:2px 8px;border-radius:999px;font-weight:700;">' + nonLette + ' non lette</span>';
+      cvHtml += '</div>';
+
+      if (ordinate.length === 0) {
+        cvHtml += '<div class="cm-vuoto">Nessuna comunicazione disponibile</div>';
+      } else {
+        ordinate.forEach(function(c) {
+          const nuova = !c.letta;
+          const icona = nuova ? '🔔' : '📩';
+          cvHtml += '<div class="cm-item' + (nuova ? ' cm-item-nuova' : '') + '">';
+          cvHtml += '<div class="cm-header' + (nuova ? ' cm-header-nuova' : '') + '">';
+          cvHtml += '<span class="cm-icona">' + icona + '</span>';
+          cvHtml += '<div class="cm-body">';
+          cvHtml += '<div class="cm-titolo' + (nuova ? ' cm-titolo-nuova' : '') + '">' + (c.titolo || 'Senza titolo') + '</div>';
+          cvHtml += '<div class="cm-footer">';
+          if (c.categoria) cvHtml += '<span class="cm-categoria">📁 ' + c.categoria + '</span>';
+          if (nuova) cvHtml += '<span class="cm-badge-nuova">nuova</span>';
+          cvHtml += '<span class="cm-data">' + fmtData(c.data) + '</span>';
+          cvHtml += '</div>';
+          cvHtml += '</div></div></div>';
+        });
+      }
+
+      cvHtml += '</div>';
+      return cvHtml;
+    ]]]

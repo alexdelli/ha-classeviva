@@ -1,0 +1,110 @@
+type: custom:button-card
+entity: sensor.classeviva_studente_classeviva_agenda_studente
+show_name: false
+show_icon: false
+show_state: false
+styles:
+  card:
+    - padding: 16px
+    - text-align: left
+    - width: 100%
+    - min-width: 0
+    - box-sizing: border-box
+    - display: block
+extra_styles: |
+  .cv-wrap { font-family: var(--primary-font-family); padding: 4px 0; text-align: left; width: 100%; min-width: 0; box-sizing: border-box; display: block; }
+  .cv-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; width: 100%; box-sizing: border-box; }
+  .cv-nav-title { font-size: 14px; font-weight: 600; color: var(--primary-text-color); }
+  .cv-btn { background: var(--card-background-color); border: 1px solid var(--divider-color); border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--primary-text-color); transition: background 0.15s; flex-shrink: 0; }
+  .cv-btn:hover { background: var(--secondary-background-color); }
+  .cv-btn:disabled { opacity: 0.25; cursor: default; }
+  .cv-day { border: 1px solid var(--divider-color); border-radius: 12px; margin-bottom: 10px; overflow: hidden; width: 100%; min-width: 0; box-sizing: border-box; display: block; }
+  .cv-day-header { padding: 9px 14px; display: flex; align-items: center; gap: 8px; background: var(--secondary-background-color); width: 100%; box-sizing: border-box; }
+  .cv-day-icon { font-size: 15px; flex-shrink: 0; }
+  .cv-day-name { font-size: 14px; font-weight: 600; color: var(--primary-text-color); text-transform: capitalize; flex: 1; min-width: 0; }
+  .cv-day-date { font-size: 12px; color: var(--secondary-text-color); flex-shrink: 0; }
+  .cv-today-badge { font-size: 10px; font-weight: 700; background: #1D9E75; color: #fff; padding: 2px 7px; border-radius: 999px; margin-left: 4px; flex-shrink: 0; }
+  .cv-empty { padding: 10px 14px 10px 42px; font-size: 13px; color: var(--secondary-text-color); font-style: italic; width: 100%; box-sizing: border-box; display: block; }
+  .cv-event { padding: 10px 14px; border-top: 1px solid var(--divider-color); display: flex; gap: 10px; align-items: flex-start; width: 100%; box-sizing: border-box; }
+  .cv-event-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .cv-event-body { flex: 1; min-width: 0; overflow: hidden; text-align: left; }
+  .cv-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .cv-compito { background: #E6F1FB; color: #185FA5; }
+  .cv-verifica { background: #FCEBEB; color: #A32D2D; }
+  .cv-evento { background: #EAF3DE; color: #3B6D11; }
+  .cv-materia { font-size: 13px; font-weight: 600; color: var(--primary-text-color); text-align: left; display: block; }
+  .cv-note { font-size: 12px; color: var(--secondary-text-color); margin-top: 2px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; overflow-wrap: break-word; text-align: left; display: block; max-width: 55ch; }
+custom_fields:
+  content: |
+    [[[
+      const GIORNI = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+      const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+      if (typeof window._cvOff === 'undefined') window._cvOff = 0;
+
+      const stato = hass.states['sensor.classeviva_studente_classeviva_agenda_studente'];
+      const eventi = (stato && stato.attributes && stato.attributes.eventi) ? stato.attributes.eventi : [];
+
+      function fmt(d) { return d.getDate() + ' ' + MESI[d.getMonth()]; }
+      function isoDate(d) {
+        return d.getFullYear() + '-' +
+          String(d.getMonth()+1).padStart(2,'0') + '-' +
+          String(d.getDate()).padStart(2,'0');
+      }
+      function getWeek(off) {
+        const t = new Date(); t.setHours(0,0,0,0);
+        return Array.from({length:7}, function(_,i) {
+          const d = new Date(t); d.setDate(t.getDate() + off*7 + i); return d;
+        });
+      }
+
+      const days = getWeek(window._cvOff);
+      const today = new Date(); today.setHours(0,0,0,0);
+      const s = days[0], e = days[6];
+
+      let cvHtml = '<div class="cv-wrap">';
+
+      cvHtml += '<div class="cv-nav">';
+      cvHtml += '<button class="cv-btn" ' + (window._cvOff <= 0 ? 'disabled' : '') + ' onclick="window._cvOff=Math.max(0,window._cvOff-1);(function(el){var c=el.closest(\'ha-card\')||el.getRootNode().host;if(c)c.dispatchEvent(new Event(\'ll-rebuild\',{bubbles:true,composed:true}))})(this)">&#8592;</button>';
+      cvHtml += '<span class="cv-nav-title">&#128197; ' + fmt(s) + ' &ndash; ' + fmt(e) + ' ' + e.getFullYear() + '</span>';
+      cvHtml += '<button class="cv-btn" onclick="window._cvOff=(window._cvOff||0)+1;(function(el){var c=el.closest(\'ha-card\')||el.getRootNode().host;if(c)c.dispatchEvent(new Event(\'ll-rebuild\',{bubbles:true,composed:true}))})(this)">&#8594;</button>';
+      cvHtml += '</div>';
+
+      days.forEach(function(day) {
+        const iso = isoDate(day);
+        const isToday = day.getTime() === today.getTime();
+        const eventiGiorno = eventi.filter(function(ev) { return ev.data === iso; });
+        const dow = day.getDay();
+        const icona = (dow === 0 || dow === 6) ? '🎉' : '📆';
+
+        cvHtml += '<div class="cv-day">';
+        cvHtml += '<div class="cv-day-header">';
+        cvHtml += '<span class="cv-day-icon">' + icona + '</span>';
+        cvHtml += '<span class="cv-day-name">' + GIORNI[dow] + '</span>';
+        cvHtml += '<span class="cv-day-date">' + fmt(day) + '</span>';
+        if (isToday) cvHtml += '<span class="cv-today-badge">oggi</span>';
+        cvHtml += '</div>';
+
+        if (eventiGiorno.length === 0) {
+          cvHtml += '<div class="cv-empty">Nessun impegno</div>';
+        } else {
+          eventiGiorno.forEach(function(ev) {
+            const tipo = ev.tipo || 'evento';
+            const materia = ev.materia || '';
+            const note = ev.note || '';
+            const evIcona = tipo === 'verifica' ? '✏️' : tipo === 'compito' ? '📚' : '📌';
+            cvHtml += '<div class="cv-event">';
+            cvHtml += '<span class="cv-event-icon">' + evIcona + '</span>';
+            cvHtml += '<div class="cv-event-body">';
+            cvHtml += '<span class="cv-badge cv-' + tipo + '">' + tipo + '</span>';
+            if (materia) cvHtml += '<div class="cv-materia">' + materia + '</div>';
+            if (note) cvHtml += '<div class="cv-note">' + note + '</div>';
+            cvHtml += '</div></div>';
+          });
+        }
+        cvHtml += '</div>';
+      });
+
+      cvHtml += '</div>';
+      return cvHtml;
+    ]]]

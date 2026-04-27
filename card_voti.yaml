@@ -1,0 +1,118 @@
+type: custom:button-card
+entity: sensor.classeviva_studente_classeviva_voti_studente
+show_name: false
+show_icon: false
+show_state: false
+styles:
+  card:
+    - padding: 16px
+    - text-align: left
+extra_styles: |
+  .vt-wrap { font-family: var(--primary-font-family); text-align: left; }
+  .vt-title { font-size: 15px; font-weight: 600; color: var(--primary-text-color); margin-bottom: 14px; }
+  .vt-materia { border: 1px solid var(--divider-color); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .vt-header { padding: 10px 14px; display: flex; align-items: center; gap: 10px; background: var(--secondary-background-color); }
+  .vt-nome { font-size: 13px; font-weight: 600; color: var(--primary-text-color); flex: 1; min-width: 0; }
+  .vt-media-box { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; flex-shrink: 0; }
+  .vt-media-num { font-size: 16px; font-weight: 700; line-height: 1; }
+  .vt-media-lbl { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; opacity: 0.8; }
+  .vt-verde { background: #EAF3DE; color: #3B6D11; }
+  .vt-giallo { background: #FAEEDA; color: #854F0B; }
+  .vt-rosso { background: #FCEBEB; color: #A32D2D; }
+  .vt-voti { padding: 6px 0; }
+  .vt-voto { padding: 7px 14px; border-top: 1px solid var(--divider-color); display: flex; align-items: center; gap: 10px; }
+  .vt-voto-num { font-size: 14px; font-weight: 700; width: 32px; text-align: center; flex-shrink: 0; }
+  .vt-voto-det { flex: 1; min-width: 0; }
+  .vt-voto-tipo { font-size: 11px; color: var(--secondary-text-color); }
+  .vt-voto-nota { font-size: 11px; color: var(--secondary-text-color); font-style: italic; }
+  .vt-voto-data { font-size: 11px; color: var(--secondary-text-color); flex-shrink: 0; }
+custom_fields:
+  content: |
+    [[[
+      const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+      const stato = hass.states['sensor.classeviva_studente_classeviva_voti_studente'];
+      const voti = (stato && stato.attributes && stato.attributes.voti) ? stato.attributes.voti : [];
+
+      function fmtData(iso) {
+        const d = new Date(iso);
+        return d.getDate() + ' ' + MESI[d.getMonth()];
+      }
+
+      function colorClasse(media) {
+        if (media >= 7) return 'vt-verde';
+        if (media >= 6) return 'vt-giallo';
+        return 'vt-rosso';
+      }
+
+      function emojiVoto(v) {
+        if (v >= 8) return '⭐';
+        if (v >= 6) return '✅';
+        return '⚠️';
+      }
+
+      // Raggruppa per materia
+      const materie = {};
+      voti.forEach(function(v) {
+        const mat = v.materia || 'Altro';
+        if (!materie[mat]) materie[mat] = [];
+        materie[mat].push(v);
+      });
+
+      // Ordina le materie per media decrescente
+      const materieOrdinate = Object.keys(materie).sort(function(a, b) {
+        const valA = materie[a].map(function(v) { return parseFloat(v.voto); }).filter(function(v) { return !isNaN(v); });
+        const valB = materie[b].map(function(v) { return parseFloat(v.voto); }).filter(function(v) { return !isNaN(v); });
+        const mediaA = valA.length > 0 ? valA.reduce(function(x,y){return x+y;},0)/valA.length : 0;
+        const mediaB = valB.length > 0 ? valB.reduce(function(x,y){return x+y;},0)/valB.length : 0;
+        return mediaB - mediaA;
+      });
+
+      let cvHtml = '<div class="vt-wrap">';
+      cvHtml += '<div class="vt-title">📊 Voti per materia</div>';
+
+      materieOrdinate.forEach(function(mat) {
+        const votiMat = materie[mat];
+
+        // Calcola media (solo voti numerici)
+        const valori = votiMat
+          .map(function(v) { return parseFloat(v.voto); })
+          .filter(function(v) { return !isNaN(v); });
+        const media = valori.length > 0
+          ? valori.reduce(function(a,b) { return a+b; }, 0) / valori.length
+          : null;
+        const mediaStr = media !== null ? media.toFixed(1) : '—';
+        const colorM = media !== null ? colorClasse(media) : 'vt-giallo';
+
+        cvHtml += '<div class="vt-materia">';
+        cvHtml += '<div class="vt-header">';
+        cvHtml += '<span class="vt-nome">' + mat + '</span>';
+        cvHtml += '<div class="vt-media-box ' + colorM + '">';
+        cvHtml += '<span class="vt-media-num">' + mediaStr + '</span>';
+        cvHtml += '<span class="vt-media-lbl">media</span>';
+        cvHtml += '</div>';
+        cvHtml += '</div>';
+
+        // Ultimi 3 voti (già ordinati per data decrescente dal sensore)
+        const ultimi = votiMat.slice(0, 3);
+        cvHtml += '<div class="vt-voti">';
+        ultimi.forEach(function(v) {
+          const val = parseFloat(v.voto);
+          const emoji = !isNaN(val) ? emojiVoto(val) : '📌';
+          const colorV = !isNaN(val) ? (val >= 7 ? '#3B6D11' : val >= 6 ? '#854F0B' : '#A32D2D') : 'var(--primary-text-color)';
+          cvHtml += '<div class="vt-voto">';
+          cvHtml += '<span class="vt-voto-num" style="color:' + colorV + '">' + emoji + ' ' + v.voto + '</span>';
+          cvHtml += '<div class="vt-voto-det">';
+          if (v.tipo) cvHtml += '<div class="vt-voto-tipo">' + v.tipo + '</div>';
+          if (v.nota) cvHtml += '<div class="vt-voto-nota">' + v.nota + '</div>';
+          cvHtml += '</div>';
+          cvHtml += '<span class="vt-voto-data">' + fmtData(v.data) + '</span>';
+          cvHtml += '</div>';
+        });
+        cvHtml += '</div>';
+        cvHtml += '</div>';
+      });
+
+      cvHtml += '</div>';
+      return cvHtml;
+    ]]]
