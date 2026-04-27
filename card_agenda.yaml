@@ -31,8 +31,10 @@ extra_styles: |
   .cv-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
   .cv-compito { background: #E6F1FB; color: #185FA5; }
   .cv-verifica { background: #FCEBEB; color: #A32D2D; }
+  .cv-event-verifica { background: #ffffff; color: #000000; }
   .cv-evento { background: #EAF3DE; color: #3B6D11; }
-  .cv-materia { font-size: 13px; font-weight: 600; color: var(--primary-text-color); text-align: left; display: block; }
+  .cv-materia { font-size: 13px; font-weight: 600; color: var(--primary-text-color); text-align: center; display: block; }
+  .cv-tipo-row { display: flex; align-items: center; gap: 10px; margin-top: 3px; margin-bottom: 2px; }
   .cv-note { font-size: 12px; color: var(--secondary-text-color); margin-top: 2px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; overflow-wrap: break-word; text-align: left; display: block; max-width: 55ch; }
 custom_fields:
   content: |
@@ -73,7 +75,11 @@ custom_fields:
       days.forEach(function(day) {
         const iso = isoDate(day);
         const isToday = day.getTime() === today.getTime();
-        const eventiGiorno = eventi.filter(function(ev) { return ev.data === iso; });
+        const eventiGiorno = eventi.filter(function(ev) { return ev.data === iso; }).sort(function(a, b) {
+          if (a.tipo === 'verifica' && b.tipo !== 'verifica') return -1;
+          if (a.tipo !== 'verifica' && b.tipo === 'verifica') return 1;
+          return 0;
+        });
         const dow = day.getDay();
         const icona = (dow === 0 || dow === 6) ? '🎉' : '📆';
 
@@ -93,11 +99,10 @@ custom_fields:
             const materia = ev.materia || '';
             const note = ev.note || '';
             const evIcona = tipo === 'verifica' ? '✏️' : tipo === 'compito' ? '📚' : '📌';
-            cvHtml += '<div class="cv-event">';
-            cvHtml += '<span class="cv-event-icon">' + evIcona + '</span>';
+            cvHtml += '<div class="cv-event' + (tipo === 'verifica' ? ' cv-event-verifica' : '') + '">';
             cvHtml += '<div class="cv-event-body">';
-            cvHtml += '<span class="cv-badge cv-' + tipo + '">' + tipo + '</span>';
             if (materia) cvHtml += '<div class="cv-materia">' + materia + '</div>';
+            cvHtml += '<div class="cv-tipo-row"><span class="cv-event-icon">' + evIcona + '</span><span class="cv-badge cv-' + tipo + '">' + tipo + '</span></div>';
             if (note) cvHtml += '<div class="cv-note">' + note + '</div>';
             cvHtml += '</div></div>';
           });
