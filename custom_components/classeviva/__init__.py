@@ -64,13 +64,32 @@ class ClassevivaCoordinator(DataUpdateCoordinator):
         username = self.entry.data[CONF_USERNAME]
         password = self.entry.data[CONF_PASSWORD]
 
-        # Classeviva vuole il codice fiscale oppure "S" + codice utente
-        # Prova prima il formato standard
+        # I codici Classeviva seguono questa logica:
+        #   G11813781Z = Genitore 1
+        #   X11813781Z = Genitore 2
+        #   S11813781Z = Studente
+        # La parte numerica centrale è identica per tutta la famiglia.
+        # Quindi per ottenere l'ID studente dagli account genitore,
+        # basta sostituire la prima lettera con "S".
+        username_upper = username.upper()
+        is_genitore = username_upper.startswith("G") or username_upper.startswith("X")
+        target = "famiglia" if is_genitore else "studente"
+
+        if is_genitore:
+            # Gli endpoint API vogliono SOLO la parte numerica dell'ident.
+            # Es: G11813781Z -> 11813781
+            # Rimuoviamo tutte le lettere e teniamo solo i numeri.
+            import re
+            self._student_id = re.sub(r'[A-Za-z]', '', username)
+            _LOGGER.debug(
+                "Account genitore: ID numerico studente ricavato: %s", self._student_id
+            )
+        
         payload = {
             "uid": username,
             "pass": password,
             "pin": "",
-            "target": "famiglia" if username.startswith("S") else "studente",
+            "target": target,
         }
 
         try:
@@ -83,8 +102,14 @@ class ClassevivaCoordinator(DataUpdateCoordinator):
             response.raise_for_status()
             data = response.json()
             self._token = data.get("token")
-            self._student_id = data.get("ident")
+
+            if not is_genitore:
+                # Account studente: ident contiene direttamente l'ID corretto
+                self._student_id = data.get("ident")
+
+            _LOGGER.debug("Login OK — student_id=%s, tipo=%s", self._student_id, target)
             return True
+
         except Exception as err:
             _LOGGER.error("Errore durante il login a Classeviva: %s", err)
             return False
@@ -182,6 +207,9 @@ class ClassevivaCoordinator(DataUpdateCoordinator):
                     "titolo": item.get("cntTitle", ""),
                     "categoria": item.get("cntCategory", ""),
                     "letta": item.get("readStatus", False),
+                    "event_code": item.get("evtCode", ""),
+                    "pub_id": item.get("pubId", ""),
+                    "ha_allegato": item.get("cntHasAttach", False),
                 })
             risultati.sort(key=lambda x: x["data"], reverse=True)
             return risultati[:10]
