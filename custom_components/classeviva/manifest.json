@@ -4,7 +4,7 @@
   "documentation": "https://github.com/Lioydiano/Classeviva",
   "requirements": ["requests>=2.28.0"],
   "codeowners": [],
-  "version": "1.0.0",
+  "version": "1.4.2",
   "iot_class": "cloud_polling",
   "config_flow": true
 }
