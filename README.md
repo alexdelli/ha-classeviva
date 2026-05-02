@@ -3,7 +3,7 @@
 Integrazione non ufficiale per visualizzare i dati del registro elettronico **Classeviva (Spaggiari)** direttamente in Home Assistant.
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
-![Versione](https://img.shields.io/badge/versione-1.4.3-blue)
+![Versione](https://img.shields.io/badge/versione-1.4.4-blue)
 ![HA minimo](https://img.shields.io/badge/Home%20Assistant-2023.1.0+-green)
 
 ---
